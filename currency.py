@@ -1,11 +1,9 @@
-import requests
+import requests, xmltodict, json
 
 # Курс доллара к рублю
-api_key = '34l5AQ1nejfv2JAEnNqCQTxIYfoZpZ6I'
-
-x = requests.get(f'https://api.apilayer.com/fixer/latest?apikey={api_key}&base=USD&symbols=RUB')
-x = x.json()
+x = requests.get('https://www.cbr.ru/scripts/XML_daily_eng.asp')
+x = xmltodict.parse(x.text)
+x = int(x['ValCurs']['Valute'][10]['Value'][:2])
 
 def exchange(price_usd: int):
-    price_rub = price_usd * x['rates']['RUB']
-    return price_rub
+    return price_usd * x

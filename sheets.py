@@ -7,14 +7,13 @@ scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive.file',
          'https://www.googleapis.com/auth/drive']
 
-credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-
-client = gspread.authorize(credentials)
-
-sheet = client.open("Копия test").sheet1
-
-data = sheet.get_all_records()
-
-
 def get_sheet():
+    credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+
+    client = gspread.authorize(credentials)
+
+    sheet = client.open("Копия test").sheet1
+
+    data = sheet.get_all_records()
+    
     return data

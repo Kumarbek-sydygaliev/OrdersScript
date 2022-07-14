@@ -1,13 +1,14 @@
-# import libraries
 from flask import Flask
-from flask import (
-    render_template, request
-)
+from flask import render_template
 from flask_sqlalchemy import SQLAlchemy
+from turbo_flask import Turbo
+
 from datetime import datetime
 from sqlalchemy import desc
+import threading
+import time
 
-# import functions
+### Import functions
 from sheets import get_sheet
 from currency import exchange
 
@@ -19,7 +20,7 @@ app.debug = True
 db = SQLAlchemy(app)
 
 
-# models
+### Models
 class Order(db.Model):
     __tablename__ = 'orders'
     
@@ -36,23 +37,43 @@ class Order(db.Model):
         self.price_rub = price_rub
 
 
-# views
+def get_orders():
+    db.create_all()
+    for order in get_sheet():
+            order = list(order.values())
+            try:
+                if not Order.query.filter_by(number=order[1]).first():
+                    order = Order(
+                        number = order[1],
+                        price_usd = order[2],
+                        date = datetime.strptime(order[3], '%d.%m.%Y'),
+                        price_rub = exchange(order[2])
+                    )
+                    
+                    db.session.add(order)
+                    db.session.commit()
+            except:
+                break
+    pass
+
+### Auto-Update of database objects
+turbo = Turbo(app)
+def update_load():
+    with app.app_context():
+        while True:
+            get_orders()
+            # print('orders updated  |  ' + datetime.today().isoformat())
+            time.sleep(10)
+
+@app.before_first_request
+def before_first_request():
+    threading.Thread(target=update_load).start()
+
+
+### Views
 @app.route('/')
 def index():
-    
-    for order in get_sheet():
-        order = list(order.values())
-
-        if not Order.query.filter_by(number=order[1]).first():
-            order = Order(
-                number = order[1],
-                price_usd = order[2],
-                date = datetime.strptime(order[3], '%d.%m.%Y'),
-                price_rub = exchange(order[2])
-            )
-            
-            db.session.add(order)
-            db.session.commit()
-
-    
     return render_template('index.html', orders=Order.query.order_by(desc(Order.date)).all())
+
+if __name__ == '__main__':
+    app.run(debug=True, host='localhost')
