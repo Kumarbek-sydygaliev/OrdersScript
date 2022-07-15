@@ -1,3 +1,4 @@
+from operator import itemgetter
 from flask import Flask
 from flask import render_template
 from flask_sqlalchemy import SQLAlchemy
@@ -36,25 +37,42 @@ class Order(db.Model):
         self.date = date
         self.price_rub = price_rub
 
+db.create_all()
+
 
 def get_orders():
-    db.create_all()
-    for order in get_sheet():
-            order = list(order.values())
-            try:
-                if not Order.query.filter_by(number=order[1]).first():
-                    order = Order(
-                        number = order[1],
-                        price_usd = order[2],
-                        date = datetime.strptime(order[3], '%d.%m.%Y'),
-                        price_rub = exchange(order[2])
-                    )
-                    
-                    db.session.add(order)
-                    db.session.commit()
-            except:
-                break
+    orders = get_sheet()
+    for order in orders:
+        order = list(order.values())
+        try:
+            item = Order(
+                    number = order[1],
+                    price_usd = order[2],
+                    date = datetime.strptime(order[3], '%d.%m.%Y'),
+                    price_rub = exchange(order[2])
+            )
+            if not Order.query.filter_by(number=order[1]).first():  
+                db.session.add(item)
+            else:
+                Order.query.filter_by(number=item.number).update(dict(
+                    number=item.number,
+                    price_usd=item.price_usd,
+                    date=item.date,
+                    price_rub=item.price_rub
+                ))
+            db.session.commit()
+        except Exception as error: # If error occured during session
+            db.session.rollback()
+            print(datetime.today(), '   ERROR:  ', error.__str__, '\n')
+            break
+
+def update_orders():
+    numbers_in_sheet = [i['заказ №'] for i in get_sheet()]
+    for order in Order.query.all():
+        if not order.number in numbers_in_sheet:
+            Order.query.filter_by(number=order.number).delete()
     pass
+
 
 ### Auto-Update of database objects
 turbo = Turbo(app)
@@ -62,8 +80,7 @@ def update_load():
     with app.app_context():
         while True:
             get_orders()
-            # print('orders updated  |  ' + datetime.today().isoformat())
-            time.sleep(10)
+            time.sleep(5)
 
 @app.before_first_request
 def before_first_request():
@@ -73,6 +90,7 @@ def before_first_request():
 ### Views
 @app.route('/')
 def index():
+    update_orders()
     return render_template('index.html', orders=Order.query.order_by(desc(Order.date)).all())
 
 if __name__ == '__main__':
