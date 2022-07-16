@@ -3,6 +3,8 @@ from flask import Flask
 from flask import render_template
 from flask_sqlalchemy import SQLAlchemy
 from turbo_flask import Turbo
+from config import DEV_DB, PROD_DB
+import os
 
 from datetime import datetime
 from sqlalchemy import desc
@@ -15,6 +17,13 @@ from currency import exchange
 
 
 app = Flask(__name__)
+
+if os.environ.get('DEBUG') == '1':
+    app.config['SQLALCHEMY_DATABASE_URI'] = DEV_DB
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = PROD_DB
+
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/orderscatalog'
 app.debug = True
@@ -36,8 +45,6 @@ class Order(db.Model):
         self.price_usd = price_usd
         self.date = date
         self.price_rub = price_rub
-
-db.create_all()
 
 
 def get_orders():
@@ -94,4 +101,4 @@ def index():
     return render_template('index.html', orders=Order.query.order_by(desc(Order.date)).all())
 
 if __name__ == '__main__':
-    app.run(debug=True, host='localhost')
+    app.run(host='0.0.0.0', port=5000, debug=os.environ.get('DEBUG') == '1')

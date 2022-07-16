@@ -1,23 +1,12 @@
-# pull official base image
-FROM python:3.7-alpine
 
-# set work directory
-WORKDIR /ordersscript
+FROM python:3
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+WORKDIR /app
 
-# install dependencies
-RUN pip install --upgrade pip
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements.txt /app
 
-# expose ports
-EXPOSE 80
+RUN pip install --upgrade-pip && python -m pip install -r requirements.txt
 
-# copy project
-COPY . .
+EXPOSE 5000 
 
-# run
-CMD ['python', '-m', 'flask', 'run']
+COPY . /app
