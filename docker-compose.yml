@@ -2,27 +2,24 @@ version: '3'
 
 services:
   app:
-    restart: always
-    build: .
-    expose:
-      - "8000"
+    build:
+      context: .
     links:
-      - postgres:postgres
+      - postgres://localhost
     volumes:
       - /usr/src/app/static
     env_file: .env
-
-  data:
-    restart: "no"
-    image: postgres:latest
-    volumes:
-      - /var/lib/postgresql
-    command: "true" 
+    ports:
+      - 5000:5000
 
   postgres:
-    restart: always
     image: postgres:latest
-    volumes_from:
-      - data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orderscatalog
+      POSTGRES_HOST: localhost
+    volumes:
+      - /postgres-data:/var/lib/postgresql/dat
     ports:
-      - "5432:5432"
+      - "5432:5432"  
