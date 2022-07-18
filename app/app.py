@@ -1,50 +1,25 @@
-from operator import itemgetter
-from flask import Flask
-from flask import render_template
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template
 from turbo_flask import Turbo
-from config import DEV_DB, PROD_DB
-import os
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import desc
 
 from datetime import datetime
-from sqlalchemy import desc
 import threading
 import time
 
-### Import functions
-from sheets import get_sheet
-from currency import exchange
+from functions import get_sheet, exchange
 
 
 app = Flask(__name__)
-
-if os.environ.get('DEBUG') == '1':
-    app.config['SQLALCHEMY_DATABASE_URI'] = DEV_DB
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = PROD_DB
-
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/orderscatalog'
-app.debug = True
+
 db = SQLAlchemy(app)
 
+from models import *
 
-### Models
-class Order(db.Model):
-    __tablename__ = 'orders'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    number = db.Column(db.Integer, unique=True)
-    price_usd = db.Column(db.Integer)
-    date = db.Column(db.DateTime)
-    price_rub = db.Column(db.Integer)
-    
-    def __init__(self, number, price_usd, date, price_rub):
-        self.number = number
-        self.price_usd = price_usd
-        self.date = date
-        self.price_rub = price_rub
+db.create_all()
 
 
 def get_orders():
@@ -81,7 +56,7 @@ def update_orders():
     pass
 
 
-### Auto-Update of database objects
+# Auto-Update of database objects
 turbo = Turbo(app)
 def update_load():
     with app.app_context():
@@ -94,11 +69,8 @@ def before_first_request():
     threading.Thread(target=update_load).start()
 
 
-### Views
+# Views
 @app.route('/')
 def index():
     update_orders()
     return render_template('index.html', orders=Order.query.order_by(desc(Order.date)).all())
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=os.environ.get('DEBUG') == '1')

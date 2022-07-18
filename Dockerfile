@@ -1,12 +1,10 @@
 
-FROM python:3
+FROM python:3.10.5
 
-WORKDIR /app
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
 
-COPY requirements.txt /app
+COPY requirements.txt /usr/src/app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install --upgrade-pip && python -m pip install -r requirements.txt
-
-EXPOSE 5000 
-
-COPY . /app
+COPY /app /usr/src/app
